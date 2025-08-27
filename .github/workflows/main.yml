@@ -5,10 +5,10 @@ on:
     branches:
       - main
 
-# Tâches
 jobs:
   cypress-run:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -24,35 +24,11 @@ jobs:
       - name: Run Cypress tests
         run: npx cypress run
 
-      - name: Send Discord Notification
+      - name: Upload Cypress report
         if: always()
-        run: |
-          # On vérifie le statut du job pour personnaliser le message
-          JOB_STATUS=${{ job.status }}
-          if [ "$JOB_STATUS" == "success" ]; then
-            EMBED_COLOR=3066993 # Vert
-            STATUS_MESSAGE="Réussi"
-          else
-            EMBED_COLOR=15158332 # Rouge
-            STATUS_MESSAGE="Échoué"
-          fi
-
-          # On construit le message JSON (un "embed" pour un joli format)
-          REPO_NAME=${{ github.repository }}
-          RUN_URL="https://github.com/$REPO_NAME/actions/runs/${{ github.run_id }}"
-          ACTOR=${{ github.actor }}
-
-          JSON_PAYLOAD=$(printf '{
-            "username": "test-bot",
-            "embeds": [{
-              "title": "Build sur `%s`",
-              "description": "Le build a **%s**. \nDéclenché par **%s**. \n[Voir les détails du run](%s)",
-              "color": %d
-            }]
-          }' "$REPO_NAME" "$STATUS_MESSAGE" "$ACTOR" "$RUN_URL" "$EMBED_COLOR")
-
-          # On envoie le message au webhook via curl
-          curl -X POST \
-          -H "Content-Type: application/json" \
-          --data "$JSON_PAYLOAD" \
-          ${{ secrets.DISCORD_WEBHOOK_URL }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-execution-report
+          path: |
+            cypress/videos/
+            cypress/screenshots/
